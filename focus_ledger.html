@@ -1,0 +1,1278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Focus Ledger</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,500&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#12182B;
+    --panel:#1A2140;
+    --panel-2:#212A4E;
+    --text:#EDE6D6;
+    --text-dim:#9C98BE;
+    --accent:#C9A24B;
+    --accent-dim:#8C7638;
+    --teal:#4F9C93;
+    --red:#C1554A;
+    --break:#7C93C7;
+    --rule: rgba(237,230,214,0.14);
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:'IBM Plex Sans', sans-serif;
+    min-height:100vh;
+  }
+  h1,h2,h3{
+    font-family:'Fraunces', serif;
+    font-weight:600;
+    margin:0;
+  }
+  .mono{ font-family:'IBM Plex Mono', monospace; }
+  button{
+    font-family:'IBM Plex Sans', sans-serif;
+    cursor:pointer;
+  }
+  input, select, textarea{
+    font-family:'IBM Plex Sans', sans-serif;
+    background:var(--panel-2);
+    border:1px solid var(--rule);
+    color:var(--text);
+    border-radius:4px;
+    padding:8px 10px;
+  }
+  input:focus, select:focus, textarea:focus, button:focus-visible{
+    outline:2px solid var(--accent);
+    outline-offset:1px;
+  }
+  ::placeholder{ color: var(--text-dim); }
+
+  /* ---------- AUTH SCREEN ---------- */
+  #auth-screen{
+    min-height:100vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:24px;
+  }
+  .auth-card{
+    width:100%;
+    max-width:380px;
+    background:var(--panel);
+    border:1px solid var(--rule);
+    border-radius:6px;
+    padding:32px 28px;
+  }
+  .auth-eyebrow{
+    color:var(--accent);
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12px;
+    letter-spacing:0.12em;
+    text-transform:uppercase;
+    margin-bottom:6px;
+  }
+  .auth-card h1{ font-size:26px; margin-bottom:4px; }
+  .auth-sub{ color:var(--text-dim); font-size:14px; margin-bottom:24px; }
+  .field{ margin-bottom:14px; display:flex; flex-direction:column; gap:6px; }
+  .field label{ font-size:12px; color:var(--text-dim); }
+  .field input{ width:100%; }
+  .primary-btn{
+    width:100%;
+    background:var(--accent);
+    color:#1A1608;
+    border:none;
+    border-radius:4px;
+    padding:10px;
+    font-weight:600;
+    font-size:14px;
+    margin-top:6px;
+  }
+  .primary-btn:hover{ background:#DBB35E; }
+  .google-btn{
+    width:100%;
+    background:var(--panel-2);
+    color:var(--text);
+    border:1px solid var(--rule);
+    border-radius:4px;
+    padding:10px;
+    font-weight:500;
+    font-size:14px;
+    margin-top:6px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+  }
+  .google-btn:hover{ border-color:var(--accent-dim); }
+  .g-dot{ width:14px; height:14px; border-radius:50%; background:conic-gradient(#4285F4 0 25%, #34A853 25% 50%, #FBBC05 50% 75%, #EA4335 75% 100%); flex-shrink:0; }
+  .or-divider{ display:flex; align-items:center; gap:10px; margin:18px 0 6px; color:var(--text-dim); font-size:12px; }
+  .or-divider::before, .or-divider::after{ content:''; flex:1; height:1px; background:var(--rule); }
+  .link-btn{
+    background:none;
+    border:none;
+    color:var(--teal);
+    font-size:13px;
+    padding:0;
+    margin-top:16px;
+  }
+  .auth-error{ color:var(--red); font-size:13px; min-height:16px; margin-top:4px; }
+  .auth-hint{ color:var(--text-dim); font-size:11px; margin-top:10px; line-height:1.5; }
+
+  /* ---------- MODAL ---------- */
+  .modal-overlay{
+    display:none;
+    position:absolute; top:0; left:0; right:0; bottom:0;
+    background:rgba(10,13,25,0.7);
+    align-items:center; justify-content:center;
+    padding:20px;
+    z-index:50;
+  }
+  .modal-overlay.open{ display:flex; }
+  .modal-card{
+    background:var(--panel); border:1px solid var(--rule); border-radius:6px;
+    padding:26px 24px; width:100%; max-width:340px;
+  }
+  .modal-card h3{ font-size:18px; margin-bottom:4px; }
+  .modal-card .auth-sub{ margin-bottom:18px; }
+  .modal-actions{ display:flex; gap:8px; margin-top:6px; }
+  .modal-actions button{ flex:1; padding:9px 0; border-radius:4px; font-size:13px; }
+  .modal-cancel{ background:none; border:1px solid var(--rule); color:var(--text-dim); }
+
+  /* ---------- APP SHELL ---------- */
+  #app-screen{ display:none; min-height:100vh; position:relative; }
+  .shell{ display:flex; min-height:100vh; }
+  .sidebar{
+    width:210px;
+    background:var(--panel);
+    border-right:1px solid var(--rule);
+    padding:22px 16px;
+    display:flex;
+    flex-direction:column;
+    flex-shrink:0;
+  }
+  .brand{ margin-bottom:26px; }
+  .brand .auth-eyebrow{ margin-bottom:2px; }
+  .brand h1{ font-size:19px; }
+  .nav-btn{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    width:100%;
+    text-align:left;
+    background:none;
+    border:none;
+    color:var(--text-dim);
+    padding:9px 10px;
+    border-radius:4px;
+    font-size:14px;
+    margin-bottom:3px;
+  }
+  .nav-btn:hover{ background:var(--panel-2); color:var(--text); }
+  .nav-btn.active{ background:var(--panel-2); color:var(--accent); }
+  .sidebar-foot{ margin-top:auto; padding-top:16px; border-top:1px solid var(--rule); }
+  .who{ font-size:13px; margin-bottom:8px; color:var(--text-dim); }
+  .who b{ color:var(--text); }
+  .logout-btn{
+    background:none; border:1px solid var(--rule); color:var(--text-dim);
+    padding:6px 10px; border-radius:4px; font-size:12px; width:100%;
+  }
+  .logout-btn:hover{ color:var(--red); border-color:var(--red); }
+
+  .main{ flex:1; padding:32px 40px; max-width:840px; }
+  .view{ display:none; }
+  .view.active{ display:block; }
+  .page-title{ font-size:24px; margin-bottom:4px; }
+  .page-sub{ color:var(--text-dim); font-size:14px; margin-bottom:26px; }
+
+  /* ---------- FOCUS VIEW ---------- */
+  .focus-grid{ display:grid; grid-template-columns: 300px 1fr; gap:28px; align-items:start; }
+  .timer-card{
+    background:var(--panel);
+    border:1px solid var(--rule);
+    border-radius:6px;
+    padding:24px;
+    text-align:center;
+  }
+  .timer-readout{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:52px;
+    font-weight:500;
+    margin:14px 0;
+    letter-spacing:0.02em;
+  }
+  .track-select{ width:100%; margin-bottom:12px; }
+  .dur-row{ display:flex; gap:6px; margin-bottom:16px; }
+  .dur-chip{
+    flex:1; background:var(--panel-2); border:1px solid var(--rule); color:var(--text-dim);
+    padding:6px 0; border-radius:4px; font-size:13px;
+  }
+  .dur-chip.active{ border-color:var(--accent); color:var(--accent); }
+  .timer-controls{ display:flex; gap:8px; }
+  .timer-controls button{
+    flex:1; padding:9px 0; border-radius:4px; border:1px solid var(--rule);
+    background:var(--panel-2); color:var(--text); font-size:14px; font-weight:500;
+  }
+  .timer-controls .start-btn{ background:var(--teal); border-color:var(--teal); color:#0A2420; }
+  .timer-controls .stop-btn{ background:var(--red); border-color:var(--red); color:#2A0F0C; }
+
+  .break-card{
+    background:var(--panel);
+    border:1px solid var(--rule);
+    border-radius:6px;
+    padding:20px 24px;
+    text-align:center;
+    margin-top:18px;
+  }
+  .break-card h3{ font-size:12px; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-dim); font-family:'IBM Plex Sans'; font-weight:500; margin-bottom:12px; }
+  .break-readout{ font-family:'IBM Plex Mono', monospace; font-size:38px; font-weight:500; margin:8px 0 14px; color:var(--break); }
+  .break-dur-row{ display:flex; gap:6px; margin-bottom:14px; }
+  .break-chip{
+    flex:1; background:var(--panel-2); border:1px solid var(--rule); color:var(--text-dim);
+    padding:6px 0; border-radius:4px; font-size:13px;
+  }
+  .break-chip.active{ border-color:var(--break); color:var(--break); }
+  .break-controls{ display:flex; gap:8px; }
+  .break-controls button{
+    flex:1; padding:8px 0; border-radius:4px; border:1px solid var(--rule);
+    background:var(--panel-2); color:var(--text); font-size:13px; font-weight:500;
+  }
+  .break-controls .start-btn{ background:var(--break); border-color:var(--break); color:#101830; }
+  .break-controls .stop-btn{ background:var(--red); border-color:var(--red); color:#2A0F0C; }
+  .break-suggest{
+    display:none;
+    background:var(--panel-2); border:1px solid var(--break); border-radius:6px;
+    padding:12px 16px; margin-top:16px; font-size:13px;
+    align-items:center; justify-content:space-between; gap:10px;
+  }
+  .break-suggest.show{ display:flex; }
+  .break-suggest button{ background:var(--break); border:none; color:#101830; border-radius:4px; padding:6px 14px; font-weight:600; font-size:12px; white-space:nowrap; }
+
+  .distraction-box{ margin-top:18px; text-align:left; }
+  .distraction-box label{ font-size:12px; color:var(--text-dim); display:block; margin-bottom:6px; }
+  .distraction-row{ display:flex; gap:6px; }
+  .distraction-row input{ flex:1; }
+  .distraction-row button{
+    background:var(--panel-2); border:1px solid var(--rule); color:var(--text); border-radius:4px; padding:0 12px;
+  }
+  .parked-list{ list-style:none; padding:0; margin:10px 0 0; font-size:12px; color:var(--text-dim); }
+  .parked-list li{ padding:4px 0; border-bottom:1px dashed var(--rule); }
+
+  .ledger-panel{
+    background:var(--panel);
+    border:1px solid var(--rule);
+    border-radius:6px;
+    padding:20px 24px;
+    min-height:340px;
+  }
+  .ledger-panel h3{ margin-bottom:14px; color:var(--text-dim); font-family:'IBM Plex Sans'; font-weight:500; text-transform:uppercase; letter-spacing:0.06em; font-size:12px; }
+  .tally-row{ display:flex; align-items:center; gap:14px; padding:8px 0; border-bottom:1px solid var(--rule); }
+  .tally-row:last-child{ border-bottom:none; }
+  .tally-track{ width:130px; font-size:13px; }
+  .tally-marks{ flex:1; }
+  .tally-minutes{ font-family:'IBM Plex Mono', monospace; color:var(--accent); font-size:13px; width:60px; text-align:right; }
+  .empty-note{ color:var(--text-dim); font-size:13px; font-style:italic; }
+
+  /* ---------- STANDALONE TIMER VIEW ---------- */
+  .free-timer-card{
+    background:var(--panel); border:1px solid var(--rule); border-radius:6px;
+    padding:36px; text-align:center; max-width:420px;
+  }
+  .free-timer-readout{
+    font-family:'IBM Plex Mono', monospace; font-size:64px; font-weight:500; margin:18px 0;
+  }
+  .free-timer-set-row{ display:flex; gap:8px; justify-content:center; margin-bottom:14px; }
+  .free-timer-set-row input{ width:70px; text-align:center; }
+  .free-timer-controls{ display:flex; gap:8px; }
+  .free-timer-controls button{
+    flex:1; padding:10px 0; border-radius:4px; border:1px solid var(--rule);
+    background:var(--panel-2); color:var(--text); font-size:14px; font-weight:500;
+  }
+  .free-timer-controls .start-btn{ background:var(--teal); border-color:var(--teal); color:#0A2420; }
+  .free-timer-controls .stop-btn{ background:var(--red); border-color:var(--red); color:#2A0F0C; }
+  .free-timer-done{ color:var(--accent); font-size:13px; margin-top:12px; min-height:16px; }
+
+  /* ---------- TASKS VIEW ---------- */
+  .task-add-row{ display:flex; gap:8px; margin-bottom:18px; flex-wrap:wrap; }
+  .task-add-row input[type="text"]{ flex:1; min-width:180px; }
+  .task-add-row select{ width:150px; }
+  .task-add-row input[type="date"]{ width:150px; }
+  .task-add-row input[type="time"]{ width:110px; }
+  .task-add-row button{ background:var(--accent); border:none; color:#1A1608; border-radius:4px; padding:0 16px; font-weight:600; }
+  .task-item{
+    display:flex; align-items:center; gap:12px; padding:10px 4px; border-bottom:1px solid var(--rule);
+  }
+  .task-item.done .task-text{ text-decoration:line-through; color:var(--text-dim); }
+  .task-text{ flex:1; font-size:14px; }
+  .task-due{ font-family:'IBM Plex Mono', monospace; font-size:11px; color:var(--text-dim); }
+  .task-track-tag{
+    font-family:'IBM Plex Mono', monospace; font-size:11px; color:var(--teal);
+    border:1px solid var(--teal); border-radius:3px; padding:2px 6px; white-space:nowrap;
+  }
+  .task-type-tag{
+    font-family:'IBM Plex Mono', monospace; font-size:11px; border-radius:3px; padding:2px 6px; white-space:nowrap; border:1px solid;
+  }
+  .type-homework{ color:var(--teal); border-color:var(--teal); }
+  .type-test{ color:var(--red); border-color:var(--red); }
+  .type-quiz{ color:var(--accent); border-color:var(--accent); }
+  .type-project{ color:var(--break); border-color:var(--break); }
+  .type-study-session{ color:var(--text-dim); border-color:var(--rule); }
+  .type-other{ color:var(--text-dim); border-color:var(--rule); }
+  .task-del{ background:none; border:none; color:var(--text-dim); font-size:16px; }
+  .task-del:hover{ color:var(--red); }
+
+  /* ---------- COURSES VIEW ---------- */
+  .course-add-row{ display:flex; gap:8px; margin-bottom:18px; max-width:420px; }
+  .course-add-row input{ flex:1; }
+  .course-add-row button{ background:var(--accent); border:none; color:#1A1608; border-radius:4px; padding:0 16px; font-weight:600; }
+  .course-list{ display:flex; flex-wrap:wrap; gap:10px; }
+  .course-chip{
+    display:flex; align-items:center; gap:8px; background:var(--panel); border:1px solid var(--rule);
+    border-radius:20px; padding:7px 8px 7px 14px; font-size:13px;
+  }
+  .course-chip button{ background:none; border:none; color:var(--text-dim); font-size:15px; line-height:1; padding:0 4px; }
+  .course-chip button:hover{ color:var(--red); }
+
+  /* ---------- CALENDAR VIEW ---------- */
+  .cal-header{ display:flex; align-items:center; gap:12px; margin-bottom:16px; }
+  .cal-header button{ background:var(--panel-2); border:1px solid var(--rule); color:var(--text); border-radius:4px; padding:6px 12px; }
+  .cal-month-label{ font-family:'Fraunces', serif; font-size:18px; flex:1; }
+  .cal-grid{ display:grid; grid-template-columns:repeat(7,1fr); gap:6px; margin-bottom:20px; }
+  .cal-dow{ font-size:11px; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-dim); text-align:center; padding-bottom:4px; }
+  .cal-cell{
+    background:var(--panel); border:1px solid var(--rule); border-radius:4px; min-height:78px;
+    padding:6px; font-size:11px; cursor:pointer; display:flex; flex-direction:column; gap:2px;
+  }
+  .cal-cell:hover{ border-color:var(--accent-dim); }
+  .cal-cell.empty{ background:none; border:none; cursor:default; }
+  .cal-cell.today{ border-color:var(--accent); }
+  .cal-cell.selected{ background:var(--panel-2); }
+  .cal-date-num{ font-family:'IBM Plex Mono', monospace; color:var(--text-dim); }
+  .cal-task-chip{ background:var(--panel-2); border-radius:3px; padding:1px 4px 1px 6px; font-size:10px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--text); border-left:3px solid var(--text-dim); }
+  .cal-task-chip.type-homework{ border-left-color:var(--teal); }
+  .cal-task-chip.type-test{ border-left-color:var(--red); }
+  .cal-task-chip.type-quiz{ border-left-color:var(--accent); }
+  .cal-task-chip.type-project{ border-left-color:var(--break); }
+  .cal-task-chip.type-study-session{ border-left-color:var(--text-dim); }
+  .cal-task-chip.type-other{ border-left-color:var(--text-dim); }
+  .cal-dot-row{ display:flex; gap:3px; margin-top:auto; }
+  .cal-dot{ width:5px; height:5px; border-radius:50%; background:var(--teal); }
+  .day-detail{ background:var(--panel); border:1px solid var(--rule); border-radius:6px; padding:18px 20px; }
+  .day-detail h3{ font-size:15px; margin-bottom:10px; }
+  .day-task-row{ display:flex; align-items:center; gap:10px; padding:6px 0; border-bottom:1px solid var(--rule); font-size:13px; }
+  .day-add-row{ display:flex; gap:8px; margin-top:12px; flex-wrap:wrap; }
+  .day-add-row input[type="text"]{ flex:1; min-width:160px; }
+  .day-add-row input[type="time"]{ width:110px; }
+
+  /* ---------- TUTOR VIEW ---------- */
+  .chat-log{
+    background:var(--panel);
+    border:1px solid var(--rule);
+    border-radius:6px;
+    padding:20px;
+    min-height:340px;
+    max-height:440px;
+    overflow-y:auto;
+    margin-bottom:14px;
+  }
+  .chat-msg{ margin-bottom:16px; }
+  .chat-msg .role{ font-size:11px; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-dim); margin-bottom:4px; font-family:'IBM Plex Mono', monospace; }
+  .chat-msg.user .role{ color:var(--accent); }
+  .chat-msg.tutor .role{ color:var(--teal); }
+  .chat-msg .body{ font-size:14px; line-height:1.55; white-space:pre-wrap; }
+  .chat-input-row{ display:flex; gap:8px; }
+  .chat-input-row textarea{ flex:1; resize:vertical; min-height:44px; }
+  .chat-input-row button{ background:var(--teal); border:none; color:#0A2420; border-radius:4px; padding:0 20px; font-weight:600; }
+  .tutor-note{ font-size:12px; color:var(--text-dim); margin-top:10px; }
+
+  @media (max-width: 720px){
+    .shell{ flex-direction:column; }
+    .sidebar{ width:100%; flex-direction:row; align-items:center; padding:12px 16px; overflow-x:auto; }
+    .brand{ margin-bottom:0; margin-right:16px; }
+    .sidebar-foot{ display:none; }
+    .main{ padding:20px; }
+    .focus-grid{ grid-template-columns:1fr; }
+    .cal-cell{ min-height:60px; }
+  }
+</style>
+</head>
+<body>
+
+<div id="auth-screen">
+  <div class="auth-card">
+    <div class="auth-eyebrow">Focus Ledger</div>
+    <h1 id="auth-title">Sign in</h1>
+    <p class="auth-sub" id="auth-sub">Pick up where you left off.</p>
+
+    <div id="login-form">
+      <div class="field">
+        <label for="li-user">Username</label>
+        <input id="li-user" autocomplete="username" placeholder="e.g. alex">
+      </div>
+      <div class="field">
+        <label for="li-pass">Password</label>
+        <input id="li-pass" type="password" autocomplete="current-password">
+      </div>
+      <div class="auth-error" id="login-error"></div>
+      <button class="primary-btn" onclick="handleLogin()">Sign in</button>
+      <div class="or-divider">or</div>
+      <button class="google-btn" onclick="openGoogleModal()"><span class="g-dot"></span>Continue with Google</button>
+      <button class="link-btn" onclick="showSignup()">New here? Create an account</button>
+      <div class="auth-hint">Google sign-in here is a simplified demo (no real Google account is contacted). Everything is saved in this browser only, so it won't follow him to a different device.</div>
+    </div>
+
+    <div id="signup-form" style="display:none;">
+      <div class="field">
+        <label for="su-name">First name</label>
+        <input id="su-name" placeholder="e.g. Alex">
+      </div>
+      <div class="field">
+        <label for="su-user">Choose a username</label>
+        <input id="su-user" autocomplete="username">
+      </div>
+      <div class="field">
+        <label for="su-pass">Choose a password</label>
+        <input id="su-pass" type="password" autocomplete="new-password">
+      </div>
+      <div class="auth-error" id="signup-error"></div>
+      <button class="primary-btn" onclick="handleSignup()">Create account</button>
+      <button class="link-btn" onclick="showLogin()">Already have an account? Sign in</button>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="google-modal" style="position:fixed;">
+    <div class="modal-card">
+      <h3>Continue with Google</h3>
+      <p class="auth-sub">Demo only — enter a name and email to create or open a Google-style profile.</p>
+      <div class="field">
+        <label for="g-name">Name</label>
+        <input id="g-name" placeholder="e.g. Alex Iyer">
+      </div>
+      <div class="field">
+        <label for="g-email">Email</label>
+        <input id="g-email" type="email" placeholder="alex@gmail.com">
+      </div>
+      <div class="auth-error" id="google-error"></div>
+      <div class="modal-actions">
+        <button class="modal-cancel" onclick="closeGoogleModal()">Cancel</button>
+        <button class="primary-btn" style="margin-top:0;" onclick="handleGoogleDemo()">Continue</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="app-screen">
+  <div class="shell">
+    <div class="sidebar">
+      <div class="brand">
+        <div class="auth-eyebrow">Focus Ledger</div>
+        <h1>Study desk</h1>
+      </div>
+      <button class="nav-btn active" data-view="focus" onclick="switchView('focus')">Focus timer</button>
+      <button class="nav-btn" data-view="timer" onclick="switchView('timer')">Quick timer</button>
+      <button class="nav-btn" data-view="tasks" onclick="switchView('tasks')">Tasks</button>
+      <button class="nav-btn" data-view="calendar" onclick="switchView('calendar')">Calendar</button>
+      <button class="nav-btn" data-view="courses" onclick="switchView('courses')">Courses</button>
+      <button class="nav-btn" data-view="tutor" onclick="switchView('tutor')">Ask a tutor</button>
+      <button class="nav-btn" data-view="ledger" onclick="switchView('ledger')">Ledger</button>
+      <button class="nav-btn" data-view="settings" onclick="switchView('settings')">Settings</button>
+      <div class="sidebar-foot">
+        <div class="who">Signed in as <b id="who-name"></b></div>
+        <button class="logout-btn" onclick="handleLogout()">Sign out</button>
+      </div>
+    </div>
+
+    <div class="main">
+
+      <div class="view active" id="view-focus">
+        <div class="page-title">Focus timer</div>
+        <div class="page-sub">Pick a course, start the clock, and let the ledger keep score.</div>
+        <div class="focus-grid">
+          <div class="timer-card">
+            <select class="track-select" id="focus-track"></select>
+            <div class="dur-row" id="dur-row">
+              <button class="dur-chip" data-min="25" onclick="setDuration(25)">25m</button>
+              <button class="dur-chip" data-min="45" onclick="setDuration(45)">45m</button>
+              <button class="dur-chip" data-min="50" onclick="setDuration(50)">50m</button>
+            </div>
+            <div class="timer-readout mono" id="timer-readout">25:00</div>
+            <div class="timer-controls">
+              <button class="start-btn" id="start-btn" onclick="toggleTimer()">Start</button>
+              <button class="stop-btn" onclick="resetTimer()">Reset</button>
+            </div>
+            <div class="break-suggest" id="break-suggest">
+              <span>Session logged. Take a break?</span>
+              <button onclick="startSuggestedBreak()">Start 5m break</button>
+            </div>
+            <div class="distraction-box">
+              <label>Stray thought? Park it, then get back to work.</label>
+              <div class="distraction-row">
+                <input id="distraction-input" placeholder="Text friend back later...">
+                <button onclick="parkDistraction()">Park</button>
+              </div>
+              <ul class="parked-list" id="parked-list"></ul>
+            </div>
+          </div>
+
+          <div>
+            <div class="ledger-panel">
+              <h3>Today's tally</h3>
+              <div id="today-tally"></div>
+            </div>
+            <div class="break-card">
+              <h3>Break timer</h3>
+              <div class="break-dur-row" id="break-dur-row">
+                <button class="break-chip" data-min="5" onclick="setBreakDuration(5)">5m</button>
+                <button class="break-chip" data-min="10" onclick="setBreakDuration(10)">10m</button>
+                <button class="break-chip" data-min="15" onclick="setBreakDuration(15)">15m</button>
+              </div>
+              <div class="break-readout mono" id="break-readout">05:00</div>
+              <div class="break-controls">
+                <button class="start-btn" id="break-start-btn" onclick="toggleBreak()">Start</button>
+                <button class="stop-btn" onclick="resetBreak()">Reset</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="view" id="view-timer">
+        <div class="page-title">Quick timer</div>
+        <div class="page-sub">A plain countdown for anything else — a timed drill, a break, a practice section.</div>
+        <div class="free-timer-card">
+          <div class="free-timer-set-row">
+            <input type="number" id="ft-min" min="0" max="180" value="10" aria-label="Minutes">
+            <span class="mono" style="align-self:center;">min</span>
+            <input type="number" id="ft-sec" min="0" max="59" value="0" aria-label="Seconds">
+            <span class="mono" style="align-self:center;">sec</span>
+          </div>
+          <div class="free-timer-readout mono" id="ft-readout">10:00</div>
+          <div class="free-timer-controls">
+            <button class="start-btn" id="ft-start-btn" onclick="toggleFreeTimer()">Start</button>
+            <button class="stop-btn" onclick="resetFreeTimer()">Reset</button>
+          </div>
+          <div class="free-timer-done" id="ft-done"></div>
+        </div>
+      </div>
+
+      <div class="view" id="view-tasks">
+        <div class="page-title">Tasks</div>
+        <div class="page-sub">Small, trackable pieces of each course.</div>
+        <div class="task-add-row">
+          <input type="text" id="new-task-text" placeholder="e.g. Finish AoPS chapter 4 problem set">
+          <select id="new-task-track"></select>
+          <select id="new-task-type"></select>
+          <input type="date" id="new-task-due">
+          <input type="time" id="new-task-time">
+          <button onclick="addTask()">Add</button>
+        </div>
+        <div id="task-list"></div>
+      </div>
+
+      <div class="view" id="view-calendar">
+        <div class="page-title">Calendar</div>
+        <div class="page-sub">Due dates and logged focus sessions, by day.</div>
+        <div class="cal-header">
+          <button onclick="calShiftMonth(-1)" aria-label="Previous month">&larr;</button>
+          <div class="cal-month-label" id="cal-month-label"></div>
+          <button onclick="calGoToday()">Today</button>
+          <button onclick="calShiftMonth(1)" aria-label="Next month">&rarr;</button>
+        </div>
+        <div class="cal-grid" id="cal-grid"></div>
+        <div class="day-detail" id="day-detail"></div>
+      </div>
+
+      <div class="view" id="view-courses">
+        <div class="page-title">Courses</div>
+        <div class="page-sub">Add whatever he's actually working on. These show up as options everywhere else.</div>
+        <div class="course-add-row">
+          <input id="new-course-name" placeholder="e.g. AP Calculus BC">
+          <button onclick="addCourse()">Add</button>
+        </div>
+        <div class="course-list" id="course-list"></div>
+      </div>
+
+      <div class="view" id="view-tutor">
+        <div class="page-title">Ask a tutor</div>
+        <div class="page-sub">Explains and hints toward an answer, doesn't just hand it over.</div>
+        <div class="chat-log" id="chat-log"></div>
+        <div class="chat-input-row">
+          <textarea id="chat-input" placeholder="Ask about a concept or a problem you're stuck on..."></textarea>
+          <button onclick="sendChat()" id="chat-send-btn">Send</button>
+        </div>
+        <div class="tutor-note">Nudges toward understanding rather than giving finished answers, so the work stays yours.</div>
+      </div>
+
+      <div class="view" id="view-ledger">
+        <div class="page-title">Ledger</div>
+        <div class="page-sub">Every logged focus session, by course.</div>
+        <div class="ledger-panel">
+          <h3>All-time tally</h3>
+          <div id="alltime-tally"></div>
+        </div>
+      </div>
+
+      <div class="view" id="view-settings">
+        <div class="page-title">Settings</div>
+        <div class="page-sub">This app saves everything in this browser only — it won't follow him to a different device or browser.</div>
+        <div class="ledger-panel" style="max-width:520px;">
+          <h3>Tutor connection</h3>
+          <p style="font-size:13px; color:var(--text-dim); line-height:1.6; margin-bottom:14px;">
+            The "Ask a tutor" tab needs a small server that holds an API key privately — a plain webpage can't call Claude directly without exposing a key to anyone who views the page source. Deploy the included <span class="mono">worker.js</span> proxy (a few free-tier minutes on Cloudflare Workers) and paste its URL below. Leave this blank and the tutor tab will say so instead of failing silently.
+          </p>
+          <div class="field">
+            <label for="tutor-endpoint">Tutor endpoint URL</label>
+            <input id="tutor-endpoint" placeholder="https://your-worker.yourname.workers.dev">
+          </div>
+          <button class="primary-btn" style="max-width:160px;" onclick="saveTutorEndpoint()">Save</button>
+          <div class="auth-error" id="settings-saved" style="color:var(--teal);"></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+const DEFAULT_COURSES = ['AMC/AIME','USACO','Python','Quant project','SAT','Other'];
+const TASK_TYPES = ['Homework','Test','Quiz','Project','Study session','Other'];
+function typeClass(type){
+  return 'type-'+(type||'Other').toLowerCase().replace(/\s+/g,'-');
+}
+let currentUser = null;
+let userCourses = [];
+let timerMinutes = 25;
+let timerSecondsLeft = 25*60;
+let timerRunning = false;
+let timerInterval = null;
+let breakMinutes = 5;
+let breakSecondsLeft = 5*60;
+let breakRunning = false;
+let breakInterval = null;
+let chatHistory = [];
+
+let ftSecondsLeft = 600;
+let ftRunning = false;
+let ftInterval = null;
+
+let calYear, calMonth;
+let calSelectedDate = null;
+
+function simpleHash(str){
+  let h = 0;
+  for(let i=0;i<str.length;i++){ h = (Math.imul(31,h) + str.charCodeAt(i))|0; }
+  return h.toString(36);
+}
+function dateKey(d){
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+function escapeHTML(s){
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+const LS_PREFIX = 'focusledger:';
+async function getAccounts(){
+  try{
+    const raw = localStorage.getItem(LS_PREFIX+'accounts');
+    return raw ? JSON.parse(raw) : {};
+  }catch(e){ return {}; }
+}
+async function saveAccounts(accounts){
+  localStorage.setItem(LS_PREFIX+'accounts', JSON.stringify(accounts));
+}
+async function getUserData(username, key, fallback){
+  try{
+    const raw = localStorage.getItem(LS_PREFIX+key+':'+username);
+    return raw ? JSON.parse(raw) : fallback;
+  }catch(e){ return fallback; }
+}
+async function saveUserData(username, key, value){
+  localStorage.setItem(LS_PREFIX+key+':'+username, JSON.stringify(value));
+}
+
+/* ---------- AUTH ---------- */
+function showSignup(){
+  document.getElementById('login-form').style.display='none';
+  document.getElementById('signup-form').style.display='block';
+  document.getElementById('auth-title').textContent='Create an account';
+  document.getElementById('auth-sub').textContent='This stays private to you on this device.';
+}
+function showLogin(){
+  document.getElementById('signup-form').style.display='none';
+  document.getElementById('login-form').style.display='block';
+  document.getElementById('auth-title').textContent='Sign in';
+  document.getElementById('auth-sub').textContent='Pick up where you left off.';
+}
+function openGoogleModal(){
+  document.getElementById('google-error').textContent='';
+  document.getElementById('google-modal').classList.add('open');
+}
+function closeGoogleModal(){
+  document.getElementById('google-modal').classList.remove('open');
+}
+
+async function handleSignup(){
+  const name = document.getElementById('su-name').value.trim();
+  const user = document.getElementById('su-user').value.trim().toLowerCase();
+  const pass = document.getElementById('su-pass').value;
+  const err = document.getElementById('signup-error');
+  err.textContent='';
+  if(!name || !user || !pass){ err.textContent='Fill in all fields.'; return; }
+  if(pass.length < 4){ err.textContent='Password should be at least 4 characters.'; return; }
+  const accounts = await getAccounts();
+  if(accounts[user]){ err.textContent='That username is taken. Try another.'; return; }
+  accounts[user] = { name: name, passHash: simpleHash(pass) };
+  await saveAccounts(accounts);
+  await loginAs(user, name);
+}
+
+async function handleLogin(){
+  const user = document.getElementById('li-user').value.trim().toLowerCase();
+  const pass = document.getElementById('li-pass').value;
+  const err = document.getElementById('login-error');
+  err.textContent='';
+  const accounts = await getAccounts();
+  const acc = accounts[user];
+  if(!acc || acc.passHash !== simpleHash(pass)){
+    err.textContent='Username or password not recognized.';
+    return;
+  }
+  await loginAs(user, acc.name);
+}
+
+async function handleGoogleDemo(){
+  const name = document.getElementById('g-name').value.trim();
+  const email = document.getElementById('g-email').value.trim().toLowerCase();
+  const err = document.getElementById('google-error');
+  err.textContent='';
+  if(!name || !email || !email.includes('@')){ err.textContent='Enter a name and a valid email.'; return; }
+  const username = 'g:'+email;
+  const accounts = await getAccounts();
+  if(!accounts[username]){
+    accounts[username] = { name: name, passHash: null, google:true };
+    await saveAccounts(accounts);
+  }
+  closeGoogleModal();
+  await loginAs(username, accounts[username].name);
+}
+
+async function loginAs(username, name){
+  currentUser = username;
+  document.getElementById('auth-screen').style.display='none';
+  document.getElementById('app-screen').style.display='block';
+  document.getElementById('who-name').textContent = name;
+  userCourses = await getUserData(currentUser, 'courses', null);
+  if(!userCourses){ userCourses = DEFAULT_COURSES.slice(); await saveUserData(currentUser, 'courses', userCourses); }
+  populateTrackSelects();
+  document.getElementById('new-task-type').innerHTML = TASK_TYPES.map(t=>'<option>'+t+'</option>').join('');
+  setDuration(25);
+  setBreakDuration(5);
+  await renderTasks();
+  await renderLedgers();
+  await renderParked();
+  await renderCourses();
+  chatHistory = [];
+  renderChat();
+  const now = new Date();
+  calYear = now.getFullYear(); calMonth = now.getMonth();
+  calSelectedDate = dateKey(now);
+  await renderCalendar();
+  document.getElementById('tutor-endpoint').value = getTutorEndpoint();
+}
+
+function handleLogout(){
+  if(timerRunning){ toggleTimer(); }
+  if(ftRunning){ toggleFreeTimer(); }
+  currentUser = null;
+  document.getElementById('app-screen').style.display='none';
+  document.getElementById('auth-screen').style.display='flex';
+  document.getElementById('li-pass').value='';
+}
+
+function switchView(name){
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.toggle('active', b.dataset.view===name));
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.getElementById('view-'+name).classList.add('active');
+}
+
+/* ---------- COURSES ---------- */
+function populateTrackSelects(){
+  const opts = userCourses.map(c=>'<option>'+escapeHTML(c)+'</option>').join('');
+  ['focus-track','new-task-track'].forEach(id=>{
+    const el = document.getElementById(id);
+    const prev = el.value;
+    el.innerHTML = opts;
+    if(userCourses.includes(prev)) el.value = prev;
+  });
+}
+async function addCourse(){
+  const input = document.getElementById('new-course-name');
+  const name = input.value.trim();
+  if(!name) return;
+  if(userCourses.some(c=>c.toLowerCase()===name.toLowerCase())){ input.value=''; return; }
+  userCourses.push(name);
+  await saveUserData(currentUser, 'courses', userCourses);
+  input.value='';
+  populateTrackSelects();
+  await renderCourses();
+}
+async function removeCourse(name){
+  userCourses = userCourses.filter(c=>c!==name);
+  await saveUserData(currentUser, 'courses', userCourses);
+  populateTrackSelects();
+  await renderCourses();
+}
+async function renderCourses(){
+  const el = document.getElementById('course-list');
+  if(userCourses.length===0){ el.innerHTML = '<div class="empty-note">No courses yet. Add one above.</div>'; return; }
+  el.innerHTML = userCourses.map((c,i)=>
+    '<div class="course-chip">'+escapeHTML(c)+'<button data-course-index="'+i+'" aria-label="Remove course">&times;</button></div>'
+  ).join('');
+}
+document.getElementById('course-list').addEventListener('click', function(e){
+  if(e.target.tagName!=='BUTTON') return;
+  const idx = parseInt(e.target.getAttribute('data-course-index'));
+  if(!isNaN(idx)) removeCourse(userCourses[idx]);
+});
+</script>
+<script>
+/* ---------- FOCUS TIMER ---------- */
+function updateReadout(){
+  const m = Math.floor(timerSecondsLeft/60).toString().padStart(2,'0');
+  const s = (timerSecondsLeft%60).toString().padStart(2,'0');
+  document.getElementById('timer-readout').textContent = m+':'+s;
+}
+function setDuration(min){
+  if(timerRunning) return;
+  timerMinutes = min;
+  timerSecondsLeft = min*60;
+  document.querySelectorAll('.dur-chip').forEach(c=>c.classList.toggle('active', parseInt(c.dataset.min)===min));
+  updateReadout();
+}
+function toggleTimer(){
+  const btn = document.getElementById('start-btn');
+  if(!timerRunning){
+    document.getElementById('break-suggest').classList.remove('show');
+    timerRunning = true;
+    btn.textContent='Pause';
+    timerInterval = setInterval(async ()=>{
+      timerSecondsLeft--;
+      updateReadout();
+      if(timerSecondsLeft<=0){
+        clearInterval(timerInterval);
+        timerRunning = false;
+        btn.textContent='Start';
+        await logSession(document.getElementById('focus-track').value, timerMinutes);
+        timerSecondsLeft = timerMinutes*60;
+        updateReadout();
+        await renderLedgers();
+        await renderCalendar();
+        document.getElementById('break-suggest').classList.add('show');
+      }
+    },1000);
+  } else {
+    timerRunning = false;
+    btn.textContent='Start';
+    clearInterval(timerInterval);
+  }
+}
+function resetTimer(){
+  timerRunning = false;
+  clearInterval(timerInterval);
+  document.getElementById('start-btn').textContent='Start';
+  timerSecondsLeft = timerMinutes*60;
+  updateReadout();
+}
+async function logSession(track, minutes){
+  const sessions = await getUserData(currentUser, 'sessions', []);
+  sessions.push({ track: track, minutes: minutes, ts: Date.now() });
+  await saveUserData(currentUser, 'sessions', sessions);
+}
+
+/* ---------- BREAK TIMER ---------- */
+function breakUpdateReadout(){
+  const m = Math.floor(breakSecondsLeft/60).toString().padStart(2,'0');
+  const s = (breakSecondsLeft%60).toString().padStart(2,'0');
+  document.getElementById('break-readout').textContent = m+':'+s;
+}
+function setBreakDuration(min){
+  if(breakRunning) return;
+  breakMinutes = min;
+  breakSecondsLeft = min*60;
+  document.querySelectorAll('.break-chip').forEach(c=>c.classList.toggle('active', parseInt(c.dataset.min)===min));
+  breakUpdateReadout();
+}
+function toggleBreak(){
+  const btn = document.getElementById('break-start-btn');
+  if(!breakRunning){
+    breakRunning = true;
+    btn.textContent='Pause';
+    breakInterval = setInterval(()=>{
+      breakSecondsLeft--;
+      breakUpdateReadout();
+      if(breakSecondsLeft<=0){
+        clearInterval(breakInterval);
+        breakRunning = false;
+        btn.textContent='Start';
+        breakSecondsLeft = breakMinutes*60;
+        breakUpdateReadout();
+      }
+    },1000);
+  } else {
+    breakRunning = false;
+    btn.textContent='Start';
+    clearInterval(breakInterval);
+  }
+}
+function resetBreak(){
+  breakRunning = false;
+  clearInterval(breakInterval);
+  document.getElementById('break-start-btn').textContent='Start';
+  breakSecondsLeft = breakMinutes*60;
+  breakUpdateReadout();
+}
+function startSuggestedBreak(){
+  document.getElementById('break-suggest').classList.remove('show');
+  setBreakDuration(5);
+  if(!breakRunning) toggleBreak();
+}
+
+/* ---------- QUICK TIMER (freeform) ---------- */
+function ftUpdateReadout(){
+  const m = Math.floor(ftSecondsLeft/60).toString().padStart(2,'0');
+  const s = (ftSecondsLeft%60).toString().padStart(2,'0');
+  document.getElementById('ft-readout').textContent = m+':'+s;
+}
+function toggleFreeTimer(){
+  const btn = document.getElementById('ft-start-btn');
+  const doneEl = document.getElementById('ft-done');
+  if(!ftRunning){
+    if(ftSecondsLeft<=0){
+      const mins = Math.max(0, parseInt(document.getElementById('ft-min').value)||0);
+      const secs = Math.max(0, Math.min(59, parseInt(document.getElementById('ft-sec').value)||0));
+      ftSecondsLeft = mins*60+secs;
+      if(ftSecondsLeft<=0) return;
+    }
+    doneEl.textContent='';
+    ftRunning = true;
+    btn.textContent='Pause';
+    ftInterval = setInterval(()=>{
+      ftSecondsLeft--;
+      ftUpdateReadout();
+      if(ftSecondsLeft<=0){
+        clearInterval(ftInterval);
+        ftRunning = false;
+        btn.textContent='Start';
+        doneEl.textContent="Time's up.";
+      }
+    },1000);
+  } else {
+    ftRunning = false;
+    btn.textContent='Start';
+    clearInterval(ftInterval);
+  }
+}
+function resetFreeTimer(){
+  ftRunning = false;
+  clearInterval(ftInterval);
+  document.getElementById('ft-start-btn').textContent='Start';
+  document.getElementById('ft-done').textContent='';
+  const mins = Math.max(0, parseInt(document.getElementById('ft-min').value)||0);
+  const secs = Math.max(0, Math.min(59, parseInt(document.getElementById('ft-sec').value)||0));
+  ftSecondsLeft = mins*60+secs;
+  ftUpdateReadout();
+}
+document.getElementById('ft-min').addEventListener('change', resetFreeTimer);
+document.getElementById('ft-sec').addEventListener('change', resetFreeTimer);
+
+/* ---------- LEDGER ---------- */
+function tallyMarksSVG(count){
+  const groups = Math.floor(count/5);
+  const rem = count%5;
+  let html = '<svg height="18" width="'+((groups*26)+(rem*5)+10)+'" style="vertical-align:middle;">';
+  let x = 4;
+  for(let g=0; g<groups; g++){
+    for(let i=0;i<4;i++){ html += '<line x1="'+(x+i*5)+'" y1="2" x2="'+(x+i*5)+'" y2="16" stroke="var(--accent)" stroke-width="2"/>'; }
+    html += '<line x1="'+(x-2)+'" y1="15" x2="'+(x+17)+'" y2="3" stroke="var(--accent)" stroke-width="2"/>';
+    x += 26;
+  }
+  for(let i=0;i<rem;i++){ html += '<line x1="'+(x+i*5)+'" y1="2" x2="'+(x+i*5)+'" y2="16" stroke="var(--text-dim)" stroke-width="2"/>'; }
+  html += '</svg>';
+  return html;
+}
+async function renderLedgers(){
+  const sessions = await getUserData(currentUser, 'sessions', []);
+  const todayStart = new Date(); todayStart.setHours(0,0,0,0);
+  const todaySessions = sessions.filter(s=>s.ts >= todayStart.getTime());
+  renderTallyBlock('today-tally', todaySessions);
+  renderTallyBlock('alltime-tally', sessions);
+}
+function renderTallyBlock(elId, sessions){
+  const el = document.getElementById(elId);
+  if(sessions.length===0){ el.innerHTML = '<div class="empty-note">No sessions logged yet. Start the timer to begin the tally.</div>'; return; }
+  const byTrack = {};
+  sessions.forEach(s=>{
+    if(!byTrack[s.track]) byTrack[s.track] = {count:0, minutes:0};
+    byTrack[s.track].count += 1;
+    byTrack[s.track].minutes += s.minutes;
+  });
+  let html = '';
+  Object.keys(byTrack).forEach(track=>{
+    const d = byTrack[track];
+    html += '<div class="tally-row"><div class="tally-track">'+escapeHTML(track)+'</div><div class="tally-marks">'+tallyMarksSVG(d.count)+'</div><div class="tally-minutes">'+d.minutes+'m</div></div>';
+  });
+  el.innerHTML = html;
+}
+
+/* ---------- DISTRACTIONS ---------- */
+async function parkDistraction(){
+  const input = document.getElementById('distraction-input');
+  const text = input.value.trim();
+  if(!text) return;
+  const list = await getUserData(currentUser, 'distractions', []);
+  list.push({ text: text, ts: Date.now() });
+  await saveUserData(currentUser, 'distractions', list);
+  input.value='';
+  await renderParked();
+}
+async function renderParked(){
+  const list = await getUserData(currentUser, 'distractions', []);
+  const recent = list.slice(-5).reverse();
+  document.getElementById('parked-list').innerHTML = recent.map(d=>'<li>'+escapeHTML(d.text)+'</li>').join('') || '';
+}
+
+/* ---------- TASKS ---------- */
+async function addTask(){
+  const text = document.getElementById('new-task-text').value.trim();
+  const track = document.getElementById('new-task-track').value;
+  const type = document.getElementById('new-task-type').value;
+  const due = document.getElementById('new-task-due').value;
+  const time = document.getElementById('new-task-time').value;
+  if(!text) return;
+  const tasks = await getUserData(currentUser, 'tasks', []);
+  tasks.push({ id: Date.now().toString(36), text: text, track: track, type: type, done:false, due: due || null, time: time || null });
+  await saveUserData(currentUser, 'tasks', tasks);
+  document.getElementById('new-task-text').value='';
+  document.getElementById('new-task-due').value='';
+  document.getElementById('new-task-time').value='';
+  await renderTasks();
+  await renderCalendar();
+}
+async function toggleTask(id){
+  const tasks = await getUserData(currentUser, 'tasks', []);
+  const t = tasks.find(t=>t.id===id);
+  if(t){ t.done = !t.done; }
+  await saveUserData(currentUser, 'tasks', tasks);
+  await renderTasks();
+  await renderCalendar();
+}
+async function deleteTask(id){
+  let tasks = await getUserData(currentUser, 'tasks', []);
+  tasks = tasks.filter(t=>t.id!==id);
+  await saveUserData(currentUser, 'tasks', tasks);
+  await renderTasks();
+  await renderCalendar();
+}
+function formatTime12(t){
+  if(!t) return '';
+  const [hStr, mStr] = t.split(':');
+  let h = parseInt(hStr,10);
+  const ampm = h>=12 ? 'PM' : 'AM';
+  h = h%12; if(h===0) h=12;
+  return h+':'+mStr+' '+ampm;
+}
+function sortByTime(tasks){
+  return tasks.slice().sort((a,b)=>{
+    if(!a.time && !b.time) return 0;
+    if(!a.time) return 1;
+    if(!b.time) return -1;
+    return a.time.localeCompare(b.time);
+  });
+}
+async function renderTasks(){
+  const tasks = await getUserData(currentUser, 'tasks', []);
+  const el = document.getElementById('task-list');
+  if(tasks.length===0){ el.innerHTML = '<div class="empty-note">No tasks yet. Add one above.</div>'; return; }
+  el.innerHTML = sortByTime(tasks).map(t=>
+    '<div class="task-item '+(t.done?'done':'')+'">'+
+      '<input type="checkbox" '+(t.done?'checked':'')+' onchange="toggleTask(\''+t.id+'\')">'+
+      '<div class="task-text">'+escapeHTML(t.text)+'</div>'+
+      (t.time ? '<div class="task-due">'+formatTime12(t.time)+'</div>' : '')+
+      (t.due ? '<div class="task-due">'+t.due+'</div>' : '')+
+      '<div class="task-type-tag '+typeClass(t.type)+'">'+escapeHTML(t.type||'Other')+'</div>'+
+      '<div class="task-track-tag">'+escapeHTML(t.track)+'</div>'+
+      '<button class="task-del" onclick="deleteTask(\''+t.id+'\')" aria-label="Delete task">&times;</button>'+
+    '</div>'
+  ).join('');
+}
+
+/* ---------- CALENDAR ---------- */
+function calShiftMonth(delta){
+  calMonth += delta;
+  if(calMonth<0){ calMonth=11; calYear--; }
+  if(calMonth>11){ calMonth=0; calYear++; }
+  renderCalendar();
+}
+function calGoToday(){
+  const now = new Date();
+  calYear = now.getFullYear(); calMonth = now.getMonth();
+  calSelectedDate = dateKey(now);
+  renderCalendar();
+}
+async function renderCalendar(){
+  const tasks = await getUserData(currentUser, 'tasks', []);
+  const sessions = await getUserData(currentUser, 'sessions', []);
+  const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  document.getElementById('cal-month-label').textContent = monthNames[calMonth]+' '+calYear;
+
+  const firstDay = new Date(calYear, calMonth, 1);
+  const startWeekday = firstDay.getDay();
+  const daysInMonth = new Date(calYear, calMonth+1, 0).getDate();
+  const todayKey = dateKey(new Date());
+
+  const sessionsByDay = {};
+  sessions.forEach(s=>{
+    const k = dateKey(new Date(s.ts));
+    sessionsByDay[k] = (sessionsByDay[k]||0)+1;
+  });
+  const tasksByDay = {};
+  tasks.forEach(t=>{
+    if(!t.due) return;
+    if(!tasksByDay[t.due]) tasksByDay[t.due]=[];
+    tasksByDay[t.due].push(t);
+  });
+  Object.keys(tasksByDay).forEach(k=>{ tasksByDay[k] = sortByTime(tasksByDay[k]); });
+
+  let html = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d=>'<div class="cal-dow">'+d+'</div>').join('');
+  for(let i=0;i<startWeekday;i++){ html += '<div class="cal-cell empty"></div>'; }
+  for(let day=1; day<=daysInMonth; day++){
+    const k = calYear+'-'+String(calMonth+1).padStart(2,'0')+'-'+String(day).padStart(2,'0');
+    const dayTasks = tasksByDay[k]||[];
+    const sCount = sessionsByDay[k]||0;
+    let cls = 'cal-cell';
+    if(k===todayKey) cls += ' today';
+    if(k===calSelectedDate) cls += ' selected';
+    let inner = '<div class="cal-date-num">'+day+'</div>';
+    dayTasks.slice(0,2).forEach(t=>{ inner += '<div class="cal-task-chip '+typeClass(t.type)+'">'+(t.time ? formatTime12(t.time)+' &middot; ' : '')+escapeHTML(t.text)+'</div>'; });
+    if(dayTasks.length>2){ inner += '<div class="cal-task-chip">+'+(dayTasks.length-2)+' more</div>'; }
+    if(sCount>0){
+      inner += '<div class="cal-dot-row">'+Array(Math.min(sCount,4)).fill('<span class="cal-dot"></span>').join('')+'</div>';
+    }
+    html += '<div class="'+cls+'" onclick="calSelectDay(\''+k+'\')">'+inner+'</div>';
+  }
+  document.getElementById('cal-grid').innerHTML = html;
+  renderDayDetail(tasksByDay[calSelectedDate]||[], sessionsByDay[calSelectedDate]||0);
+}
+function calSelectDay(k){
+  calSelectedDate = k;
+  renderCalendar();
+}
+function renderDayDetail(dayTasks, sCount){
+  const el = document.getElementById('day-detail');
+  const label = calSelectedDate || 'No day selected';
+  let html = '<h3>'+label+'</h3>';
+  if(sCount>0){ html += '<div class="empty-note" style="margin-bottom:10px;">'+sCount+' focus session'+(sCount===1?'':'s')+' logged this day.</div>'; }
+  if(dayTasks.length===0){
+    html += '<div class="empty-note">No tasks due this day.</div>';
+  } else {
+    dayTasks.forEach(t=>{
+      html += '<div class="day-task-row"><input type="checkbox" '+(t.done?'checked':'')+' onchange="toggleTask(\''+t.id+'\')">'+(t.time ? '<div class="task-due" style="width:70px;">'+formatTime12(t.time)+'</div>' : '')+'<div style="flex:1;'+(t.done?'text-decoration:line-through;color:var(--text-dim);':'')+'">'+escapeHTML(t.text)+'</div><div class="task-type-tag '+typeClass(t.type)+'">'+escapeHTML(t.type||'Other')+'</div><div class="task-track-tag">'+escapeHTML(t.track)+'</div></div>';
+    });
+  }
+  html += '<div class="day-add-row">'+
+    '<input type="text" id="day-add-text" placeholder="Add a task due this day">'+
+    '<select id="day-add-track"></select>'+
+    '<select id="day-add-type"></select>'+
+    '<input type="time" id="day-add-time">'+
+    '<button onclick="addTaskForSelectedDay()">Add</button>'+
+  '</div>';
+  el.innerHTML = html;
+  const sel = document.getElementById('day-add-track');
+  sel.innerHTML = userCourses.map(c=>'<option>'+escapeHTML(c)+'</option>').join('');
+  const typeSel = document.getElementById('day-add-type');
+  typeSel.innerHTML = TASK_TYPES.map(t=>'<option>'+t+'</option>').join('');
+}
+async function addTaskForSelectedDay(){
+  const text = document.getElementById('day-add-text').value.trim();
+  const track = document.getElementById('day-add-track').value;
+  const type = document.getElementById('day-add-type').value;
+  const time = document.getElementById('day-add-time').value;
+  if(!text || !calSelectedDate) return;
+  const tasks = await getUserData(currentUser, 'tasks', []);
+  tasks.push({ id: Date.now().toString(36), text: text, track: track, type: type, done:false, due: calSelectedDate, time: time || null });
+  await saveUserData(currentUser, 'tasks', tasks);
+  await renderTasks();
+  await renderCalendar();
+}
+
+/* ---------- TUTOR CHAT ---------- */
+function renderChat(){
+  const el = document.getElementById('chat-log');
+  if(chatHistory.length===0){
+    el.innerHTML = '<div class="empty-note">Ask about anything from AMC problems to USACO logic to SAT reading strategy.</div>';
+    return;
+  }
+  el.innerHTML = chatHistory.map(m=>
+    '<div class="chat-msg '+m.role+'"><div class="role">'+(m.role==='user'?'You':'Tutor')+'</div><div class="body">'+escapeHTML(m.content)+'</div></div>'
+  ).join('');
+  el.scrollTop = el.scrollHeight;
+}
+function getTutorEndpoint(){
+  return localStorage.getItem(LS_PREFIX+'tutor_endpoint') || '';
+}
+function saveTutorEndpoint(){
+  const url = document.getElementById('tutor-endpoint').value.trim();
+  localStorage.setItem(LS_PREFIX+'tutor_endpoint', url);
+  const msg = document.getElementById('settings-saved');
+  msg.textContent = 'Saved.';
+  setTimeout(()=>{ msg.textContent=''; }, 2000);
+}
+async function sendChat(){
+  const input = document.getElementById('chat-input');
+  const text = input.value.trim();
+  if(!text) return;
+  input.value='';
+  chatHistory.push({role:'user', content:text});
+  renderChat();
+  const btn = document.getElementById('chat-send-btn');
+  const endpoint = getTutorEndpoint();
+  if(!endpoint){
+    chatHistory.push({role:'tutor', content: "The tutor isn't connected yet. Open Settings, deploy the included worker.js proxy, and paste its URL there."});
+    renderChat();
+    return;
+  }
+  btn.disabled = true;
+  btn.textContent = 'Thinking...';
+  try{
+    const response = await fetch(endpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        messages: chatHistory.map(m=>({role: m.role==='tutor'?'assistant':'user', content: m.content}))
+      })
+    });
+    const data = await response.json();
+    const textBlocks = (data.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('\n');
+    chatHistory.push({role:'tutor', content: textBlocks || data.error || 'Sorry, no response came back. Try asking again.'});
+  }catch(e){
+    chatHistory.push({role:'tutor', content: 'Could not reach the tutor endpoint. Double check the URL in Settings.'});
+  }
+  btn.disabled = false;
+  btn.textContent = 'Send';
+  renderChat();
+}
+document.getElementById('chat-input').addEventListener('keydown', function(e){
+  if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); sendChat(); }
+});
+
+setDuration(25);
+ftUpdateReadout();
+</script>
+
+</body>
+</html>
